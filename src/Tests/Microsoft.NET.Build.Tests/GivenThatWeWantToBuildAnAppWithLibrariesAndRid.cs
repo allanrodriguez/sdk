@@ -48,7 +48,7 @@ namespace Microsoft.NET.Build.Tests
                 .Should()
                 .Pass();
 
-            var outputDirectory = buildCommand.GetOutputDirectory("netcoreapp2.1", runtimeIdentifier: runtimeIdentifier);
+            var outputDirectory = buildCommand.GetOutputDirectory(ToolsetInfo.CurrentTargetFramework, runtimeIdentifier: runtimeIdentifier);
             var selfContainedExecutable = $"App{Constants.ExeSuffix}";
 
             string selfContainedExecutableFullPath = Path.Combine(outputDirectory.FullName, selfContainedExecutable);
@@ -91,10 +91,10 @@ namespace Microsoft.NET.Build.Tests
             var buildCommand = new BuildCommand(testAsset, "App");
 
             buildCommand
-                .Execute($"/p:RuntimeIdentifier={runtimeIdentifier}", $"/p:TestRuntimeIdentifier={runtimeIdentifier}", "/p:SelfContained=false")
+                .Execute($"/p:RuntimeIdentifier={runtimeIdentifier}", $"/p:TestRuntimeIdentifier={runtimeIdentifier}", "/p:SelfContained=false", "/p:ProduceReferenceAssembly=false")
                 .Should().Pass();
 
-            var outputDirectory = buildCommand.GetOutputDirectory("netcoreapp2.1", runtimeIdentifier: runtimeIdentifier);
+            var outputDirectory = buildCommand.GetOutputDirectory(ToolsetInfo.CurrentTargetFramework, runtimeIdentifier: runtimeIdentifier);
 
             outputDirectory.Should().NotHaveSubDirectories();
             outputDirectory.Should().OnlyHaveFiles(new[] {
@@ -102,8 +102,8 @@ namespace Microsoft.NET.Build.Tests
                 "App.dll",
                 "App.pdb",
                 "App.deps.json",
+                "sqlite3.dll",
                 "App.runtimeconfig.json",
-                "App.runtimeconfig.dev.json",
                 "LibraryWithoutRid.dll",
                 "LibraryWithoutRid.pdb",
                 "LibraryWithRid.dll",

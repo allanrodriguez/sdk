@@ -26,7 +26,7 @@ namespace Microsoft.NET.Build.Tests
         [Theory]
         [InlineData("C#", "AppWithLibrary")]
         [InlineData("VB", "AppWithLibraryVB")]
-        [InlineData("F#", "AppWithLibraryFS", Skip = "https://github.com/dotnet/coreclr/issues/27275")]
+        [InlineData("F#", "AppWithLibraryFS")]
         public void It_resolves_analyzers_correctly(string language, string testAssetName)
         {
             var asset = _testAssetsManager
@@ -48,7 +48,7 @@ namespace Microsoft.NET.Build.Tests
             var command = new GetValuesCommand(
                 Log,
                 Path.Combine(asset.Path, "TestApp"),
-                "netcoreapp1.1",
+                ToolsetInfo.CurrentTargetFramework,
                 "Analyzer",
                 GetValuesCommand.ValueType.Item);
 
@@ -59,9 +59,9 @@ namespace Microsoft.NET.Build.Tests
             switch (language)
             {
                 case "C#":
-                    analyzers.Select(RelativeNuGetPath).Should().BeEquivalentTo(
-                        "microsoft.codeanalysis.analyzers/1.1.0/analyzers/dotnet/cs/Microsoft.CodeAnalysis.Analyzers.dll",
-                        "microsoft.codeanalysis.analyzers/1.1.0/analyzers/dotnet/cs/Microsoft.CodeAnalysis.CSharp.Analyzers.dll",
+                    analyzers.Select(RelativeNuGetPath).Where(x => x != null).Should().BeEquivalentTo(
+                        "Microsoft.NET.Sdk/targets/../analyzers/Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll",
+                        "Microsoft.NET.Sdk/targets/../analyzers/Microsoft.CodeAnalysis.NetAnalyzers.dll",
                         "microsoft.codequality.analyzers/2.6.0/analyzers/dotnet/cs/Microsoft.CodeQuality.Analyzers.dll",
                         "microsoft.codequality.analyzers/2.6.0/analyzers/dotnet/cs/Microsoft.CodeQuality.CSharp.Analyzers.dll",
                         "microsoft.dependencyvalidation.analyzers/0.9.0/analyzers/dotnet/Microsoft.DependencyValidation.Analyzers.dll"
@@ -70,8 +70,8 @@ namespace Microsoft.NET.Build.Tests
 
                 case "VB":
                     analyzers.Select(RelativeNuGetPath).Should().BeEquivalentTo(
-                        "microsoft.codeanalysis.analyzers/1.1.0/analyzers/dotnet/vb/Microsoft.CodeAnalysis.Analyzers.dll",
-                        "microsoft.codeanalysis.analyzers/1.1.0/analyzers/dotnet/vb/Microsoft.CodeAnalysis.VisualBasic.Analyzers.dll",
+                        "Microsoft.NET.Sdk/targets/../analyzers/Microsoft.CodeAnalysis.VisualBasic.NetAnalyzers.dll",
+                        "Microsoft.NET.Sdk/targets/../analyzers/Microsoft.CodeAnalysis.NetAnalyzers.dll",
                         "microsoft.codequality.analyzers/2.6.0/analyzers/dotnet/vb/Microsoft.CodeQuality.Analyzers.dll",
                         "microsoft.codequality.analyzers/2.6.0/analyzers/dotnet/vb/Microsoft.CodeQuality.VisualBasic.Analyzers.dll",
                         "microsoft.dependencyvalidation.analyzers/0.9.0/analyzers/dotnet/Microsoft.DependencyValidation.Analyzers.dll"
@@ -134,7 +134,8 @@ namespace Microsoft.NET.Build.Tests
         static readonly List<string> nugetRoots = new List<string>()
             {
                 TestContext.Current.NuGetCachePath,
-                Path.Combine(FileConstants.UserProfileFolder, ".dotnet", "NuGetFallbackFolder")
+                Path.Combine(FileConstants.UserProfileFolder, ".dotnet", "NuGetFallbackFolder"),
+                TestContext.Current.ToolsetUnderTest.SdksPath
             };
 
         static string RelativeNuGetPath(string absoluteNuGetPath)
@@ -145,6 +146,10 @@ namespace Microsoft.NET.Build.Tests
                 {
                     return absoluteNuGetPath.Substring(nugetRoot.Length + 1)
                                 .Replace(Path.DirectorySeparatorChar, '/');
+                }
+                if (absoluteNuGetPath.EndsWith("System.Text.Json.SourceGeneration.dll"))
+                {
+                    return null;
                 }
             }
             throw new InvalidDataException("Expected path to be under a NuGet root: " + absoluteNuGetPath);
